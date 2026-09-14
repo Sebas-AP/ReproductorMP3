@@ -1,0 +1,18 @@
+targets:
+  $default:
+    sources:
+      exclude:
+        - lib/data/datasources/local/app_database.dart
+    builders:
+      riverpod_generator:
+        generate_for:
+          - lib/main.dart
+          - lib/presentation/**/*.dart
+          - lib/services/**/*.dart
+          - lib/data/repositories/**/*.dart
+          - lib/domain/**/*.dart
+          - lib/core/**/*.dart
+      drift_dev|drift_dev:
+        enabled: true
+        generate_for:
+          - lib/data/datasources/local/app_database.dart

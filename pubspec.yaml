@@ -1,0 +1,83 @@
+name: reproductor_musica
+description: "Reproductor de música con ecualizador, playlists, glassmorfismo y colores dinámicos"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State Management
+  flutter_riverpod: ^2.5.1
+  riverpod_annotation: ^2.3.5
+
+  # Audio
+  just_audio: ^0.9.36
+  just_audio_background: ^0.0.1-beta.12
+  audio_session: ^0.1.19
+  audio_service: ^0.18.19
+  media_kit: ^1.1.12
+  media_kit_libs_audio: ^1.0.4
+
+  # Database
+  drift: ^2.18.0
+  sqlite3_flutter_libs: ^0.5.20
+  path_provider: ^2.1.2
+  path: ^1.9.0
+
+  # Permissions & Storage
+  permission_handler: ^11.3.1
+
+  # Metadata & Artwork
+  palette_generator: ^0.3.3+3
+
+  # UI & Glassmorphism
+  glassmorphism: ^3.0.0
+  flutter_animate: ^4.5.0
+  shimmer: ^3.0.0
+  cached_network_image: ^3.3.1
+  photo_view: ^0.15.0
+
+  # Utilities
+  equatable: ^2.0.5
+  get_it: ^7.7.0
+  intl: ^0.19.0
+  collection: ^1.18.0
+  uuid: ^4.4.0
+  share_plus: ^10.1.0
+  url_launcher: ^6.2.5
+  package_info_plus: ^8.0.0
+  device_info_plus: ^10.1.0
+
+  # Settings
+  shared_preferences: ^2.2.3
+
+  # Background & Notifications
+  android_alarm_manager_plus: ^4.0.1
+  flutter_local_notifications: ^17.2.2
+
+  # Widgets
+  home_widget: ^0.1.6
+
+  # Icons
+  cupertino_icons: ^1.0.8
+  material_symbols_icons: ^4.2720.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  riverpod_generator: ^2.4.0
+  build_runner: ^2.4.11
+  drift_dev: ^2.21.2
+  custom_lint: ^0.6.4
+  riverpod_lint: ^2.3.10
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+    - assets/fonts/
