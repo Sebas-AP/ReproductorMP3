@@ -252,15 +252,16 @@ class SongDao extends DatabaseAccessor<AppDatabase> with _$SongDaoMixin {
 
   Future<void> incrementPlayCount(int songId) {
     return (update(songs)..where((s) => s.id.equals(songId))).write(
-      SongsCompanion(
-        playCount: Value(songs.playCount + 1),
-        lastPlayed: Value(DateTime.now()),
+      SongsCompanion.custom(
+        playCount: songs.playCount + const Constant(1),
+        lastPlayed: Variable(DateTime.now()),
       ),
     );
   }
 
-  Future<int> getSongCount() {
-    return selectOnly(songs).map((row) => songs.id.count()).getSingle().then((v) => v.read(songs.id.count()));
+  Future<int> getSongCount() async {
+    final result = await selectOnly(songs).map((row) => songs.id.count()).getSingleOrNull();
+    return (result as int?) ?? 0;
   }
 
   Stream<List<Song>> watchAllSongs() {
@@ -348,12 +349,12 @@ class PlaylistDao extends DatabaseAccessor<AppDatabase> with _$PlaylistDaoMixin 
           ..join([
             innerJoin(playlistSongs, playlistSongs.songId.equalsExp(songs.id))
           ])
-          ..where(playlistSongs.playlistId.equals(playlistId))
+          ..where((s) => playlistSongs.playlistId.equals(playlistId))
           ..orderBy([(s) => OrderingTerm.asc(playlistSongs.position)]))
         .get();
   }
 
-  Future<void> addSongToPlaylist(int playlistId, int songId, int position) {
+  Future<void> addSongToPlaylist(int playlistId, int songId, int position) async {
     await into(playlistSongs).insert(
       PlaylistSongsCompanion(
         playlistId: Value(playlistId),
@@ -380,12 +381,12 @@ class PlaylistDao extends DatabaseAccessor<AppDatabase> with _$PlaylistDaoMixin 
     });
   }
 
-  Future<int> getPlaylistSongCount(int playlistId) {
-    return (selectOnly(playlistSongs)
-          ..where(playlistSongs.playlistId.equals(playlistId))
-          ..map((row) => playlistSongs.songId.count()))
-        .getSingle()
-        .then((v) => v.read(playlistSongs.songId.count()));
+  Future<int> getPlaylistSongCount(int playlistId) async {
+    final query = selectOnly(playlistSongs)
+        ..where(playlistSongs.playlistId.equals(playlistId))
+        ..map((row) => playlistSongs.songId.count());
+    final result = await query.getSingleOrNull();
+    return (result as int?) ?? 0;
   }
 
   Stream<List<Playlist>> watchAllPlaylists() {

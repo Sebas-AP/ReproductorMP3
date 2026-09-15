@@ -1,11 +1,12 @@
+import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:reproductor_musica/presentation/widgets/glass_widgets.dart';
-import 'package:reproductor_musica/services/audio_service.dart';
 import 'package:reproductor_musica/presentation/providers/service_providers.dart';
-import 'package:reproductor_musica/domain/entities/media.dart';
 import 'package:reproductor_musica/presentation/providers/repository_providers.dart';
+import 'package:reproductor_musica/domain/entities/media.dart';
 
 class LibraryPage extends ConsumerStatefulWidget {
   const LibraryPage({super.key});
@@ -88,7 +89,6 @@ class _LibraryPageState extends ConsumerState<LibraryPage> with SingleTickerProv
                 ],
               ),
             ),
-          ),
           SliverFillRemaining(
             child: TabBarView(
               controller: _tabController,
@@ -252,7 +252,6 @@ class _LibraryPageState extends ConsumerState<LibraryPage> with SingleTickerProv
   }
 
   void _playSong(Song song) {
-    // TODO: Get full queue from current view and play
     ref.read(audioServiceProvider).setQueue([song], startIndex: 0);
     ref.read(audioServiceProvider).play();
   }
@@ -263,7 +262,6 @@ class _LibraryPageState extends ConsumerState<LibraryPage> with SingleTickerProv
 }
 
 final _filteredSongsProvider = FutureProvider<List<Song>>((ref) async {
-  // TODO: Implement search filtering
   final repository = ref.watch(songRepositoryProvider);
   return repository.getAllSongs();
 });

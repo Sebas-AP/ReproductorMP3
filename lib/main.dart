@@ -4,7 +4,7 @@ import 'package:just_audio_background/just_audio_background.dart';
 import 'package:reproductor_musica/core/themes/app_theme.dart';
 import 'package:reproductor_musica/presentation/providers/theme_provider.dart';
 import 'package:reproductor_musica/presentation/pages/home/home_page.dart';
-import 'package:reproductor_musica/services/audio_service.dart';
+import 'package:reproductor_musica/services/audio_service.dart' as audio_service;
 import 'package:reproductor_musica/services/equalizer_service.dart';
 
 Future<void> main() async {
@@ -16,7 +16,7 @@ Future<void> main() async {
     androidNotificationOngoing: true,
   );
 
-  final audioService = AudioService();
+  final audioService = audio_service.AudioPlayerService();
   await audioService.initialize();
 
   final equalizerService = EqualizerService();
@@ -37,7 +37,7 @@ class ReproductorApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       theme: theme,
       darkTheme: theme,
-      themeMode: theme.brightness,
+      themeMode: theme.brightness == Brightness.dark ? ThemeMode.dark : ThemeMode.light,
       home: const HomePage(),
       builder: (context, child) {
         return MediaQuery(

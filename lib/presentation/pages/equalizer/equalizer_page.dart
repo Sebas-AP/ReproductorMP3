@@ -218,8 +218,8 @@ class _EqualizerPageState extends ConsumerState<EqualizerPage> with TickerProvid
         children: [
           Text('Efectos', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
           const SizedBox(height: 20),
-          _buildEffectSlider('Bass Boost', Icons.bass_boost, bassBoost, 0, 12,
-              enabled ? (v) => service.setBassBoost(v) : null, colorScheme),
+          _buildEffectSlider('Bass Boost', Icons.graphic_eq, bassBoost, 0, 12,
+              enabled ? (v) => equalizerService.setBassBoost(v) : null, colorScheme),
           const SizedBox(height: 16),
           _buildEffectSlider('Virtualizador', Icons.surround_sound, virtualizer, 0, 10,
               enabled ? (v) => service.setVirtualizer(v) : null, colorScheme),
@@ -285,11 +285,11 @@ class _EqualizerPageState extends ConsumerState<EqualizerPage> with TickerProvid
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('Presets', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
-                GlassIconButton(
+Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Presets', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+                  GlassIconButton(
                   icon: Icons.add,
                   size: 20,
                   onPressed: _showSavePresetDialog,

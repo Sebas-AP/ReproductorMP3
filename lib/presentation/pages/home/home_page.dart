@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart'
-    hide BottomNavigationBarItem, BottomNavigationBar;
+import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:reproductor_musica/presentation/pages/library/library_page.dart';
 import 'package:reproductor_musica/presentation/pages/playlists/playlists_page.dart';
@@ -7,8 +8,8 @@ import 'package:reproductor_musica/presentation/pages/equalizer/equalizer_page.d
 import 'package:reproductor_musica/presentation/pages/now_playing/now_playing_page.dart';
 import 'package:reproductor_musica/presentation/pages/settings/settings_page.dart';
 import 'package:reproductor_musica/presentation/widgets/glass_widgets.dart';
-import 'package:reproductor_musica/services/audio_service.dart';
 import 'package:reproductor_musica/presentation/providers/service_providers.dart';
+import 'package:reproductor_musica/domain/entities/media.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -180,31 +181,32 @@ class _HomePageState extends ConsumerState<HomePage> with TickerProviderStateMix
           ),
         ],
       ),
-    ).animate()
-        .slideY(begin: 1, end: 0, duration: 300.ms, curve: Curves.easeOut)
-        .fadeIn(duration: 300.ms);
+    )
+        .animate()
+        .fadeIn(duration: 300.ms)
+        .slideY(begin: 1, end: 0, duration: 300.ms, curve: Curves.easeOut);
   }
 
   Widget _buildBottomNavBar(ColorScheme colorScheme) {
     final items = [
-      BottomNavigationBarItem(
-        icon: const Icon(Icons.library_music_outlined),
-        activeIcon: const Icon(Icons.library_music),
+      const BottomNavigationBarItem(
+        icon: Icon(Icons.library_music_outlined),
+        activeIcon: Icon(Icons.library_music),
         label: 'Biblioteca',
       ),
-      BottomNavigationBarItem(
-        icon: const Icon(Icons.queue_music_outlined),
-        activeIcon: const Icon(Icons.queue_music),
+      const BottomNavigationBarItem(
+        icon: Icon(Icons.queue_music_outlined),
+        activeIcon: Icon(Icons.queue_music),
         label: 'Playlists',
       ),
-      BottomNavigationBarItem(
-        icon: const Icon(Icons.equalizer_outlined),
-        activeIcon: const Icon(Icons.equalizer),
+      const BottomNavigationBarItem(
+        icon: Icon(Icons.equalizer_outlined),
+        activeIcon: Icon(Icons.equalizer),
         label: 'Ecualizador',
       ),
-      BottomNavigationBarItem(
-        icon: const Icon(Icons.settings_outlined),
-        activeIcon: const Icon(Icons.settings),
+      const BottomNavigationBarItem(
+        icon: Icon(Icons.settings_outlined),
+        activeIcon: Icon(Icons.settings),
         label: 'Ajustes',
       ),
     ];

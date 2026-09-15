@@ -1,6 +1,7 @@
 import 'package:reproductor_musica/data/datasources/local/app_database.dart' as db;
 import 'package:reproductor_musica/domain/entities/media.dart';
 import 'package:reproductor_musica/domain/repositories/media_repository.dart';
+import 'package:drift/drift.dart';
 
 class SongRepositoryImpl implements SongRepository {
   final db.SongDao _dao;

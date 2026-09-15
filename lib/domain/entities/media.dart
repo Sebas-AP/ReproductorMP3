@@ -1,4 +1,7 @@
 import 'package:equatable/equatable.dart';
+import 'dart:ui';
+import 'package:flutter/material.dart';
+import 'package:reproductor_musica/core/themes/app_theme.dart';
 
 class Song extends Equatable {
   final int? id;
