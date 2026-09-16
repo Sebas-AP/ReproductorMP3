@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_animate/flutter_animate.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:reproductor_musica/presentation/widgets/glass_widgets.dart';
 import 'package:reproductor_musica/presentation/providers/theme_provider.dart';
 import 'package:reproductor_musica/presentation/providers/service_providers.dart';
@@ -18,7 +16,6 @@ class SettingsPage extends ConsumerStatefulWidget {
 
 class _SettingsPageState extends ConsumerState<SettingsPage> {
   List<Folder> _folders = [];
-  bool _isLoading = true;
 
   @override
   void initState() {
@@ -31,14 +28,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final folders = await repository.getAllFolders();
     setState(() {
       _folders = folders;
-      _isLoading = false;
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
     final themeNotifier = ref.read(themeProvider.notifier);
     final userTheme = ref.read(themeProvider.notifier).userTheme;
 
@@ -410,7 +404,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
   Widget _buildColorPickerSheet(Function(Color) onColorSelected, Color currentColor) {
     final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
 
     final materialColors = [
       Colors.red, Colors.pink, Colors.purple, Colors.deepPurple,

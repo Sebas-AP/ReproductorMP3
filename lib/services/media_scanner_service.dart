@@ -2,25 +2,24 @@ import 'dart:async';
 import 'dart:io';
 import 'package:path/path.dart' as p;
 import 'package:permission_handler/permission_handler.dart';
+import 'package:reproductor_musica/core/constants/app_constants.dart';
 import 'package:reproductor_musica/domain/entities/media.dart';
 import 'package:reproductor_musica/domain/repositories/media_repository.dart';
 
 class MediaScannerService implements MediaScannerRepository {
-  final SongRepository _songRepository;
-  final FolderRepository _folderRepository;
-  final SettingsRepository _settingsRepository;
+  final SongRepository songRepository;
+  final FolderRepository folderRepository;
+  final SettingsRepository settingsRepository;
 
   final StreamController<double> _progressController = StreamController<double>.broadcast();
   bool _isScanning = false;
   Timer? _debounceTimer;
 
   MediaScannerService({
-    required SongRepository songRepository,
-    required FolderRepository folderRepository,
-    required SettingsRepository settingsRepository,
-  })  : _songRepository = songRepository,
-        _folderRepository = folderRepository,
-        _settingsRepository = settingsRepository;
+    required this.songRepository,
+    required this.folderRepository,
+    required this.settingsRepository,
+  });
 
   @override
   Stream<double> get scanProgress => _progressController.stream;
@@ -89,7 +88,7 @@ class MediaScannerService implements MediaScannerRepository {
     _progressController.add(0.0);
 
     try {
-      final folders = await _folderRepository.getAllFolders(enabledOnly: true);
+      final folders = await folderRepository.getAllFolders(enabledOnly: true);
       int totalScanned = 0;
       int totalFolders = folders.length;
 
@@ -98,20 +97,20 @@ class MediaScannerService implements MediaScannerRepository {
 
         final songs = await scanFolder(folder.path);
         for (final song in songs) {
-          final existing = await _songRepository.getSongByPath(song.path);
+          final existing = await songRepository.getSongByPath(song.path);
           if (existing == null) {
-            await _songRepository.insertSong(song.copyWith(folderId: folder.id));
+            await songRepository.insertSong(song.copyWith(folderId: folder.id));
           } else {
-            await _songRepository.updateSong(existing.copyWith(folderId: folder.id));
+            await songRepository.updateSong(existing.copyWith(folderId: folder.id));
           }
         }
 
-        await _folderRepository.updateFolder(folder.copyWith(lastScanned: DateTime.now()));
+        await folderRepository.updateFolder(folder.copyWith(lastScanned: DateTime.now()));
         totalScanned++;
         _progressController.add(totalScanned / totalFolders);
       }
 
-      await _settingsRepository.setSetting(AppConstants.prefsLastScanTime, DateTime.now().toIso8601String());
+      await settingsRepository.setSetting(AppConstants.prefsLastScanTime, DateTime.now().toIso8601String());
     } finally {
       _isScanning = false;
       _progressController.add(1.0);
@@ -138,10 +137,4 @@ class MediaScannerService implements MediaScannerRepository {
     _progressController.close();
     _debounceTimer?.cancel();
   }
-}
-
-class AppConstants {
-  static const List<String> supportedAudioExtensions = [
-    'mp3', 'm4a', 'aac', 'flac', 'ogg', 'wav', 'opus', 'wma', 'alac', 'aiff'
-  ];
 }

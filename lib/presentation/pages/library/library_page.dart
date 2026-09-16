@@ -19,7 +19,6 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
     with SingleTickerProviderStateMixin {
   late final TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
-  String _searchQuery = '';
   Timer? _searchDebounce;
 
   @override
@@ -40,14 +39,12 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
   void _onSearchChanged() {
     _searchDebounce?.cancel();
     _searchDebounce = Timer(const Duration(milliseconds: 300), () {
-      setState(() => _searchQuery = _searchController.text);
+      ref.read(_searchQueryProvider.notifier).state = _searchController.text;
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
     final songsAsync = ref.watch(_filteredSongsProvider);
 
     return Scaffold(
@@ -265,7 +262,10 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
   }
 }
 
+final _searchQueryProvider = StateProvider<String>((ref) => '');
+
 final _filteredSongsProvider = FutureProvider<List<Song>>((ref) async {
   final repository = ref.watch(songRepositoryProvider);
-  return repository.getAllSongs();
+  final query = ref.watch(_searchQueryProvider);
+  return repository.getAllSongs(query: query.isEmpty ? null : query);
 });

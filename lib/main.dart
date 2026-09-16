@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio_background/just_audio_background.dart';
-import 'package:reproductor_musica/core/themes/app_theme.dart';
 import 'package:reproductor_musica/presentation/providers/theme_provider.dart';
 import 'package:reproductor_musica/presentation/pages/home/home_page.dart';
 import 'package:reproductor_musica/services/audio_service.dart' as audio_service;

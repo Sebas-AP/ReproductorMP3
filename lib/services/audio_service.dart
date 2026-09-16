@@ -1,22 +1,22 @@
 import 'dart:async';
+import 'package:audio_session/audio_session.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:just_audio_background/just_audio_background.dart';
-import 'package:audio_session/audio_session.dart';
 import 'package:reproductor_musica/domain/entities/media.dart';
-import 'package:reproductor_musica/services/media_session_service.dart';
 import 'package:reproductor_musica/services/equalizer_service.dart';
 
 class AudioPlayerService {
   final AudioPlayer _player = AudioPlayer();
-  final MediaSessionService _mediaSession = MediaSessionService();
   final EqualizerService _equalizerService = EqualizerService();
-  final List<AudioSource> _queue = [];
+  final ConcatenatingAudioSource _playlist = ConcatenatingAudioSource(children: []);
+  final List<Song> _queueSongs = [];
+
   int _currentIndex = -1;
   bool _shuffle = false;
   RepeatMode _repeatMode = RepeatMode.off;
   double _speed = 1.0;
   double _volume = 1.0;
-  Duration? _sleepTimerEnd;
+  DateTime? _sleepTimerEnd;
   Timer? _sleepTimer;
   StreamController<PlaybackState>? _stateController;
   StreamSubscription<PlayerState>? _playerStateSub;
@@ -53,17 +53,13 @@ class AudioPlayerService {
 
     await _player.setVolume(_volume);
     await _player.setSpeed(_speed);
+    await _player.setAudioSource(_playlist);
 
     // Get audio session ID for equalizer (Android)
     int? audioSessionId;
     try {
       audioSessionId = _player.androidAudioSessionId;
     } catch (_) {}
-
-    await _mediaSession.initialize(
-      audioPlayer: _player,
-      equalizerService: _equalizerService,
-    );
 
     await _equalizerService.initialize(audioSessionId: audioSessionId);
   }
@@ -72,29 +68,42 @@ class AudioPlayerService {
 
   PlaybackState get currentState => _buildState();
 
-  Future<void> setQueue(List<Song> songs, {int startIndex = 0}) async {
-    _queue.clear();
-    for (final song in songs) {
-      _queue.add(AudioSource.uri(Uri.parse(song.path), tag: MediaItem(
-        id: song.id.toString(),
+  AudioSource _createAudioSource(Song song) {
+    return AudioSource.uri(
+      Uri.parse(song.path),
+      tag: MediaItem(
+        id: song.id?.toString() ?? song.path,
         title: song.displayTitle,
         artist: song.displayArtist,
         album: song.displayAlbum,
-        artUri: song.artworkPath != null ? Uri.parse(song.artworkPath!) : null,
+        artUri: song.artworkPath != null ? Uri.file(song.artworkPath!) : null,
         duration: song.durationDuration,
-      )));
+        extras: {'path': song.path},
+      ),
+    );
+  }
+
+  Future<void> setQueue(List<Song> songs, {int startIndex = 0}) async {
+    _queueSongs.clear();
+    _queueSongs.addAll(songs);
+    final sources = songs.map(_createAudioSource).toList();
+
+    _currentIndex = songs.isEmpty ? -1 : startIndex.clamp(0, songs.length - 1);
+    await _playlist.clear();
+    await _playlist.addAll(sources);
+
+    if (_currentIndex >= 0 && _currentIndex < songs.length) {
+      await _player.seek(Duration.zero, index: _currentIndex);
     }
-    _currentIndex = startIndex.clamp(0, songs.length - 1);
-    await _player.setAudioSource(ConcatenatingAudioSource(children: _queue), initialIndex: _currentIndex);
-    await _mediaSession.updateQueue(songs, startIndex: startIndex);
+    _emitState();
   }
 
   Future<void> play() async {
-    await _mediaSession.play();
+    await _player.play();
   }
 
   Future<void> pause() async {
-    await _mediaSession.pause();
+    await _player.pause();
   }
 
   Future<void> playPause() async {
@@ -106,51 +115,57 @@ class AudioPlayerService {
   }
 
   Future<void> stop() async {
-    await _mediaSession.stop();
+    await _player.stop();
   }
 
   Future<void> seek(Duration position) async {
-    await _mediaSession.seekTo(position);
+    await _player.seek(position);
   }
 
   Future<void> next() async {
-    await _mediaSession.skipToNext();
+    if (_player.hasNext) {
+      await _player.seekToNext();
+    }
   }
 
   Future<void> previous() async {
-    await _mediaSession.skipToPrevious();
+    if (_player.hasPrevious) {
+      await _player.seekToPrevious();
+    }
   }
 
   Future<void> setRepeatMode(RepeatMode mode) async {
     _repeatMode = mode;
     switch (mode) {
       case RepeatMode.off:
-        await _mediaSession.setRepeatMode(AudioServiceRepeatMode.none);
+        await _player.setLoopMode(LoopMode.off);
         break;
       case RepeatMode.one:
-        await _mediaSession.setRepeatMode(AudioServiceRepeatMode.one);
+        await _player.setLoopMode(LoopMode.one);
         break;
       case RepeatMode.all:
-        await _mediaSession.setRepeatMode(AudioServiceRepeatMode.all);
+        await _player.setLoopMode(LoopMode.all);
         break;
     }
+    _emitState();
   }
 
   Future<void> setShuffleMode(ShuffleMode mode) async {
     _shuffle = mode == ShuffleMode.on;
-    await _mediaSession.setShuffleMode(
-      _shuffle ? AudioServiceShuffleMode.all : AudioServiceShuffleMode.none,
-    );
+    await _player.setShuffleModeEnabled(_shuffle);
+    _emitState();
   }
 
   Future<void> setSpeed(double speed) async {
     _speed = speed.clamp(0.5, 2.0);
-    await _mediaSession.setSpeed(_speed);
+    await _player.setSpeed(_speed);
+    _emitState();
   }
 
   Future<void> setVolume(double volume) async {
     _volume = volume.clamp(0.0, 1.0);
-    await _mediaSession.setVolume(_volume);
+    await _player.setVolume(_volume);
+    _emitState();
   }
 
   Future<void> setSleepTimer(Duration? duration) async {
@@ -159,6 +174,7 @@ class AudioPlayerService {
     if (duration != null) {
       _sleepTimer = Timer(duration, () => pause());
     }
+    _emitState();
   }
 
   Duration? get sleepTimerRemaining {
@@ -168,39 +184,31 @@ class AudioPlayerService {
   }
 
   Future<void> addToQueue(Song song, {int? position}) async {
-    final source = AudioSource.uri(Uri.parse(song.path), tag: MediaItem(
-      id: song.id.toString(),
-      title: song.displayTitle,
-      artist: song.displayArtist,
-      album: song.displayAlbum,
-      artUri: song.artworkPath != null ? Uri.parse(song.artworkPath!) : null,
-      duration: song.durationDuration,
-    ));
-
-    if (position != null && position <= _queue.length) {
-      _queue.insert(position, source);
-      await _player.insert(source, index: position);
+    final source = _createAudioSource(song);
+    if (position != null && position <= _queueSongs.length) {
+      _queueSongs.insert(position, song);
+      await _playlist.insert(position, source);
     } else {
-      _queue.add(source);
-      await _player.add(source);
+      _queueSongs.add(song);
+      await _playlist.add(source);
     }
-    await _mediaSession.addToQueue(song, position: position);
+    _emitState();
   }
 
   Future<void> removeFromQueue(int index) async {
-    if (index >= 0 && index < _queue.length) {
-      _queue.removeAt(index);
-      await _player.removeAt(index);
-      await _mediaSession.removeFromQueue(index);
+    if (index >= 0 && index < _queueSongs.length) {
+      _queueSongs.removeAt(index);
+      await _playlist.removeAt(index);
+      _emitState();
     }
   }
 
   Future<void> reorderQueue(int oldIndex, int newIndex) async {
-    if (oldIndex < 0 || oldIndex >= _queue.length || newIndex < 0 || newIndex >= _queue.length) return;
-    final item = _queue.removeAt(oldIndex);
-    _queue.insert(newIndex, item);
-    await _player.move(oldIndex, newIndex);
-    await _mediaSession.reorderQueue(oldIndex, newIndex);
+    if (oldIndex < 0 || oldIndex >= _queueSongs.length || newIndex < 0 || newIndex >= _queueSongs.length) return;
+    final song = _queueSongs.removeAt(oldIndex);
+    _queueSongs.insert(newIndex, song);
+    await _playlist.move(oldIndex, newIndex);
+    _emitState();
   }
 
   void _onPlayerStateChanged(PlayerState state) {
@@ -253,37 +261,13 @@ class AudioPlayerService {
 
   PlaybackState _buildState() {
     Song? currentSong;
-    if (_currentIndex >= 0 && _currentIndex < _queue.length) {
-      final tag = _queue[_currentIndex].tag as MediaItem?;
-      if (tag != null) {
-        currentSong = Song(
-          id: int.tryParse(tag.id),
-          path: tag.extras?['path'] as String? ?? '',
-          title: tag.title,
-          artist: tag.artist ?? '',
-          album: tag.album ?? '',
-          duration: tag.duration?.inMilliseconds ?? 0,
-          artworkPath: tag.artUri?.toString(),
-          dateAdded: DateTime.now(),
-        );
-      }
+    if (_currentIndex >= 0 && _currentIndex < _queueSongs.length) {
+      currentSong = _queueSongs[_currentIndex];
     }
 
     return PlaybackState(
       currentSong: currentSong,
-      queue: _queue.map((s) {
-        final tag = s.tag as MediaItem?;
-        return Song(
-          id: int.tryParse(tag?.id ?? ''),
-          path: tag?.extras?['path'] as String? ?? '',
-          title: tag?.title ?? '',
-          artist: tag?.artist ?? '',
-          album: tag?.album ?? '',
-          duration: tag?.duration?.inMilliseconds ?? 0,
-          artworkPath: tag?.artUri?.toString(),
-          dateAdded: DateTime.now(),
-        );
-      }).toList(),
+      queue: List<Song>.unmodifiable(_queueSongs),
       currentIndex: _currentIndex,
       isPlaying: _player.playing,
       position: _player.position,
@@ -298,7 +282,7 @@ class AudioPlayerService {
   }
 
   void _emitState() {
-    if (!_stateController!.isClosed) {
+    if (_stateController != null && !_stateController!.isClosed) {
       _stateController!.add(_buildState());
     }
   }
@@ -314,7 +298,6 @@ class AudioPlayerService {
     await _volumeSub?.cancel();
     _sleepTimer?.cancel();
     await _player.dispose();
-    _mediaSession.dispose();
     await _stateController?.close();
   }
 }

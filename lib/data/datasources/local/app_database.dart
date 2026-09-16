@@ -76,6 +76,7 @@ class Settings extends Table {
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
+  AppDatabase.forTesting(super.e);
 
   @override
   int get schemaVersion => 1;
@@ -344,14 +345,14 @@ class PlaylistDao extends DatabaseAccessor<AppDatabase> with _$PlaylistDaoMixin 
     return (delete(playlists)..where((p) => p.id.equals(id))).go();
   }
 
-  Future<List<Song>> getPlaylistSongs(int playlistId) {
-    return (select(songs)
-          ..join([
-            innerJoin(playlistSongs, playlistSongs.songId.equalsExp(songs.id))
-          ])
-          ..where((s) => playlistSongs.playlistId.equals(playlistId))
-          ..orderBy([(s) => OrderingTerm.asc(playlistSongs.position)]))
-        .get();
+  Future<List<Song>> getPlaylistSongs(int playlistId) async {
+    final query = select(songs).join([
+      innerJoin(playlistSongs, playlistSongs.songId.equalsExp(songs.id))
+    ])
+      ..where(playlistSongs.playlistId.equals(playlistId))
+      ..orderBy([OrderingTerm.asc(playlistSongs.position)]);
+    final rows = await query.get();
+    return rows.map((row) => row.readTable(songs)).toList();
   }
 
   Future<void> addSongToPlaylist(int playlistId, int songId, int position) async {
@@ -382,11 +383,12 @@ class PlaylistDao extends DatabaseAccessor<AppDatabase> with _$PlaylistDaoMixin 
   }
 
   Future<int> getPlaylistSongCount(int playlistId) async {
+    final count = playlistSongs.songId.count();
     final query = selectOnly(playlistSongs)
-        ..where(playlistSongs.playlistId.equals(playlistId))
-        ..map((row) => playlistSongs.songId.count());
-    final result = await query.getSingleOrNull();
-    return (result as int?) ?? 0;
+      ..addColumns([count])
+      ..where(playlistSongs.playlistId.equals(playlistId));
+    final row = await query.getSingleOrNull();
+    return row?.read(count) ?? 0;
   }
 
   Stream<List<Playlist>> watchAllPlaylists() {

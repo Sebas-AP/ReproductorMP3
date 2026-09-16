@@ -5,6 +5,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:reproductor_musica/presentation/widgets/glass_widgets.dart';
 import 'package:reproductor_musica/domain/entities/media.dart';
 import 'package:reproductor_musica/presentation/providers/repository_providers.dart';
+import 'package:reproductor_musica/presentation/providers/service_providers.dart';
 
 class PlaylistsPage extends ConsumerStatefulWidget {
   const PlaylistsPage({super.key});
@@ -16,8 +17,6 @@ class PlaylistsPage extends ConsumerStatefulWidget {
 class _PlaylistsPageState extends ConsumerState<PlaylistsPage> {
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
     final playlistsAsync = ref.watch(_playlistsProvider);
 
     return Scaffold(
@@ -242,7 +241,10 @@ class _PlaylistsPageState extends ConsumerState<PlaylistsPage> {
   void _playPlaylist(Playlist playlist) async {
     final repository = ref.read(playlistRepositoryProvider);
     final songs = await repository.getPlaylistSongs(playlist.id!);
-    // TODO: Play songs
+    if (songs.isNotEmpty) {
+      await ref.read(audioServiceProvider).setQueue(songs, startIndex: 0);
+      await ref.read(audioServiceProvider).play();
+    }
   }
 
   void _showPlaylistMenu(Playlist playlist) {

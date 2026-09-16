@@ -80,9 +80,7 @@ class EqualizerService {
     // TODO: Load from SharedPreferences
   }
 
-  Future<void> _saveState() async {
-    // TODO: Save to SharedPreferences
-  }
+
 
   void setGain(int bandIndex, double gain) {
     if (bandIndex < 0 || bandIndex >= 10) return;

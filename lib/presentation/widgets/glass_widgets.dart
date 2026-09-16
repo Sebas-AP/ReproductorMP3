@@ -166,7 +166,7 @@ class GlassAppBar extends StatelessWidget implements PreferredSizeWidget {
   }
 
   @override
-  Size get preferredSize => Size.fromHeight(height + MediaQuery.of(context).padding.top);
+  Size get preferredSize => Size.fromHeight(height + (bottom?.preferredSize.height ?? 0.0));
 }
 
 class GlassBottomNavBar extends StatelessWidget {
@@ -350,7 +350,6 @@ class GlassIconButton extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final glassTheme = GlassmorphismTheme.of(context);
-    final effectiveBlur = glassTheme?.blurIntensity ?? AppTheme.defaultBlurIntensity;
     final effectiveOpacity = glassTheme?.surfaceOpacity ?? AppTheme.defaultSurfaceOpacity;
     final effectiveRadius = (borderRadius?.topLeft.x ?? glassTheme?.borderRadius ?? AppTheme.defaultBorderRadius);
 
@@ -536,7 +535,6 @@ class GlassChip extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final glassTheme = GlassmorphismTheme.of(context);
-    final effectiveBlur = glassTheme?.blurIntensity ?? AppTheme.defaultBlurIntensity;
     final effectiveOpacity = glassTheme?.surfaceOpacity ?? AppTheme.defaultSurfaceOpacity;
     final effectiveRadius = glassTheme?.borderRadius ?? AppTheme.defaultBorderRadius;
 

@@ -16,7 +16,6 @@ class EqualizerPage extends ConsumerStatefulWidget {
 
 class _EqualizerPageState extends ConsumerState<EqualizerPage> with TickerProviderStateMixin {
   late final List<AnimationController> _bandControllers;
-  late final List<Animation<double>> _bandAnimations;
 
   @override
   void initState() {
@@ -25,10 +24,6 @@ class _EqualizerPageState extends ConsumerState<EqualizerPage> with TickerProvid
       duration: const Duration(milliseconds: 150),
       vsync: this,
     ));
-    _bandAnimations = _bandControllers.map((c) => CurvedAnimation(
-      parent: c,
-      curve: Curves.easeOut,
-    )).toList();
   }
 
   @override
@@ -41,8 +36,6 @@ class _EqualizerPageState extends ConsumerState<EqualizerPage> with TickerProvid
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
     final equalizerState = ref.watch(equalizerStateProvider);
     final equalizerService = ref.watch(equalizerServiceProvider);
     final presetsAsync = ref.watch(_presetsProvider);
@@ -120,7 +113,6 @@ class _EqualizerPageState extends ConsumerState<EqualizerPage> with TickerProvid
 
   Widget _buildBands(AsyncValue<EqualizerState> state, EqualizerService service) {
     final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
     final gains = state.value?.gains ?? List.filled(10, 0.0);
     final enabled = state.value?.enabled ?? false;
 

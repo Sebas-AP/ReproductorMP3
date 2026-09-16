@@ -8,7 +8,6 @@ import 'package:reproductor_musica/presentation/widgets/glass_widgets.dart';
 import 'package:reproductor_musica/services/audio_service.dart' as audio_service;
 import 'package:reproductor_musica/presentation/providers/service_providers.dart';
 import 'package:reproductor_musica/domain/entities/media.dart';
-import 'package:reproductor_musica/core/themes/app_theme.dart';
 
 class NowPlayingPage extends ConsumerStatefulWidget {
   const NowPlayingPage({super.key});
@@ -280,6 +279,7 @@ class _NowPlayingPageState extends ConsumerState<NowPlayingPage> with TickerProv
   }
 
   Widget _buildProgressBar(PlaybackState state, ColorScheme colorScheme) {
+    final theme = Theme.of(context);
     final progress = state.duration.inMilliseconds > 0
         ? state.position.inMilliseconds / state.duration.inMilliseconds
         : 0.0;
@@ -323,8 +323,6 @@ class _NowPlayingPageState extends ConsumerState<NowPlayingPage> with TickerProv
   }
 
   Widget _buildControls(PlaybackState state, ColorScheme colorScheme) {
-    final theme = Theme.of(context);
-
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -391,8 +389,6 @@ class _NowPlayingPageState extends ConsumerState<NowPlayingPage> with TickerProv
   }
 
   Widget _buildSecondaryControls(PlaybackState state, ColorScheme colorScheme) {
-    final theme = Theme.of(context);
-
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -547,6 +543,7 @@ class _NowPlayingPageState extends ConsumerState<NowPlayingPage> with TickerProv
   }
 
   Widget _buildTimerOption(int minutes, audio_service.AudioPlayerService service, ColorScheme colorScheme) {
+    final theme = Theme.of(context);
     return GlassCard(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       onTap: () {
@@ -583,7 +580,6 @@ class _NowPlayingPageState extends ConsumerState<NowPlayingPage> with TickerProv
   }
 
   Widget _buildSpeedOption(double speed, audio_service.AudioPlayerService service, ColorScheme colorScheme) {
-    final theme = Theme.of(context);
     final isSelected = (service.currentState.speed - speed).abs() < 0.01;
 
     return GlassChip(

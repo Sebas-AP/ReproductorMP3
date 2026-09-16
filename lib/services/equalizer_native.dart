@@ -7,6 +7,7 @@ class NativeEqualizer {
 
   static bool _initialized = false;
   static int? _audioSessionId;
+  static int? get audioSessionId => _audioSessionId;
 
   static Future<void> initialize(int audioSessionId) async {
     if (_initialized) return;
