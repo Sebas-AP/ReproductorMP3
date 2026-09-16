@@ -3,9 +3,10 @@ import 'package:reproductor_musica/services/audio_service.dart';
 import 'package:reproductor_musica/services/equalizer_service.dart';
 import 'package:reproductor_musica/services/media_scanner_service.dart';
 import 'package:reproductor_musica/data/repositories/repository_providers.dart';
+import 'package:reproductor_musica/domain/entities/media.dart';
 
-final audioServiceProvider = Provider<AudioService>((ref) {
-  final service = AudioService();
+final audioServiceProvider = Provider<AudioPlayerService>((ref) {
+  final service = AudioPlayerService();
   ref.onDispose(() => service.dispose());
   return service;
 });

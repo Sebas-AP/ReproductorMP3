@@ -17,7 +17,7 @@ class SettingsPage extends ConsumerStatefulWidget {
 }
 
 class _SettingsPageState extends ConsumerState<SettingsPage> {
-  final List<Folder> _folders = [];
+  List<Folder> _folders = [];
   bool _isLoading = true;
 
   @override

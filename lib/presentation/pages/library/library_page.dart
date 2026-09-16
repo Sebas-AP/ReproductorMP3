@@ -15,7 +15,8 @@ class LibraryPage extends ConsumerStatefulWidget {
   ConsumerState<LibraryPage> createState() => _LibraryPageState();
 }
 
-class _LibraryPageState extends ConsumerState<LibraryPage> with SingleTickerProviderStateMixin {
+class _LibraryPageState extends ConsumerState<LibraryPage>
+    with SingleTickerProviderStateMixin {
   late final TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
@@ -52,43 +53,6 @@ class _LibraryPageState extends ConsumerState<LibraryPage> with SingleTickerProv
     return Scaffold(
       body: CustomScrollView(
         slivers: [
-          SliverAppBar(
-            floating: true,
-            snap: true,
-            title: const Text('Biblioteca'),
-            bottom: PreferredSize(
-              preferredSize: const Size.fromHeight(120),
-              child: Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                    child: GlassTextField(
-                      controller: _searchController,
-                      hintText: 'Buscar canciones, artistas, álbumes...',
-                      prefixIcon: const Icon(Icons.search),
-                      suffixIcon: _searchQuery.isNotEmpty
-                          ? IconButton(
-                              icon: const Icon(Icons.clear),
-                              onPressed: () => _searchController.clear(),
-                            )
-                          : null,
-                    ),
-                  ),
-                  TabBar(
-                    controller: _tabController,
-                    tabs: const [
-                      Tab(text: 'Canciones'),
-                      Tab(text: 'Artistas'),
-                      Tab(text: 'Álbumes'),
-                      Tab(text: 'Carpetas'),
-                    ],
-                    isScrollable: true,
-                    tabAlignment: TabAlignment.start,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                  ),
-                ],
-              ),
-            ),
           SliverFillRemaining(
             child: TabBarView(
               controller: _tabController,
@@ -115,7 +79,10 @@ class _LibraryPageState extends ConsumerState<LibraryPage> with SingleTickerProv
 
   Widget _buildSongList(List<Song> songs) {
     if (songs.isEmpty) {
-      return _buildEmptyState('No hay canciones', 'Añade una carpeta en ajustes para empezar');
+      return _buildEmptyState(
+        'No hay canciones',
+        'Añade una carpeta en ajustes para empezar',
+      );
     }
 
     return ListView.separated(
@@ -137,7 +104,8 @@ class _LibraryPageState extends ConsumerState<LibraryPage> with SingleTickerProv
     final colorScheme = theme.colorScheme;
     final playbackState = ref.watch(playbackStateProvider);
 
-    final isPlaying = playbackState.hasValue &&
+    final isPlaying =
+        playbackState.hasValue &&
         playbackState.value!.currentSong?.id == song.id &&
         playbackState.value!.isPlaying;
 
@@ -160,7 +128,11 @@ class _LibraryPageState extends ConsumerState<LibraryPage> with SingleTickerProv
                   : null,
             ),
             child: song.artworkPath == null
-                ? Icon(Icons.music_note, color: colorScheme.onSurfaceVariant, size: 28)
+                ? Icon(
+                    Icons.music_note,
+                    color: colorScheme.onSurfaceVariant,
+                    size: 28,
+                  )
                 : null,
           ),
           const SizedBox(width: 16),
@@ -173,7 +145,9 @@ class _LibraryPageState extends ConsumerState<LibraryPage> with SingleTickerProv
                   song.displayTitle,
                   style: theme.textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.w600,
-                    color: isPlaying ? colorScheme.primary : colorScheme.onSurface,
+                    color: isPlaying
+                        ? colorScheme.primary
+                        : colorScheme.onSurface,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -204,11 +178,17 @@ class _LibraryPageState extends ConsumerState<LibraryPage> with SingleTickerProv
   }
 
   Widget _buildArtistsTab() {
-    return _buildEmptyState('Artistas', 'Escanea tu biblioteca para ver artistas');
+    return _buildEmptyState(
+      'Artistas',
+      'Escanea tu biblioteca para ver artistas',
+    );
   }
 
   Widget _buildAlbumsTab() {
-    return _buildEmptyState('Álbumes', 'Escanea tu biblioteca para ver álbumes');
+    return _buildEmptyState(
+      'Álbumes',
+      'Escanea tu biblioteca para ver álbumes',
+    );
   }
 
   Widget _buildFoldersTab() {
@@ -223,11 +203,25 @@ class _LibraryPageState extends ConsumerState<LibraryPage> with SingleTickerProv
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.music_off, size: 80, color: colorScheme.onSurfaceVariant.withOpacity(0.3)),
+          Icon(
+            Icons.music_off,
+            size: 80,
+            color: colorScheme.onSurfaceVariant.withOpacity(0.3),
+          ),
           const SizedBox(height: 16),
-          Text(title, style: theme.textTheme.headlineSmall?.copyWith(color: colorScheme.onSurfaceVariant)),
+          Text(
+            title,
+            style: theme.textTheme.headlineSmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
           const SizedBox(height: 8),
-          Text(subtitle, style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant)),
+          Text(
+            subtitle,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
         ],
       ),
     );
@@ -243,9 +237,19 @@ class _LibraryPageState extends ConsumerState<LibraryPage> with SingleTickerProv
         children: [
           Icon(Icons.error_outline, size: 80, color: colorScheme.error),
           const SizedBox(height: 16),
-          Text('Error', style: theme.textTheme.headlineSmall?.copyWith(color: colorScheme.error)),
+          Text(
+            'Error',
+            style: theme.textTheme.headlineSmall?.copyWith(
+              color: colorScheme.error,
+            ),
+          ),
           const SizedBox(height: 8),
-          Text(error, style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant)),
+          Text(
+            error,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
         ],
       ),
     );

@@ -1,10 +1,11 @@
 import 'dart:async';
-import 'package:flutter/material.dart';
+import 'dart:io';
+import 'package:flutter/material.dart' hide RepeatMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:palette_generator/palette_generator.dart';
 import 'package:reproductor_musica/presentation/widgets/glass_widgets.dart';
-import 'package:reproductor_musica/services/audio_service.dart';
+import 'package:reproductor_musica/services/audio_service.dart' as audio_service;
 import 'package:reproductor_musica/presentation/providers/service_providers.dart';
 import 'package:reproductor_musica/domain/entities/media.dart';
 import 'package:reproductor_musica/core/themes/app_theme.dart';
@@ -545,7 +546,7 @@ class _NowPlayingPageState extends ConsumerState<NowPlayingPage> with TickerProv
     );
   }
 
-  Widget _buildTimerOption(int minutes, AudioService service, ColorScheme colorScheme) {
+  Widget _buildTimerOption(int minutes, audio_service.AudioPlayerService service, ColorScheme colorScheme) {
     return GlassCard(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       onTap: () {
@@ -581,7 +582,7 @@ class _NowPlayingPageState extends ConsumerState<NowPlayingPage> with TickerProv
     );
   }
 
-  Widget _buildSpeedOption(double speed, AudioService service, ColorScheme colorScheme) {
+  Widget _buildSpeedOption(double speed, audio_service.AudioPlayerService service, ColorScheme colorScheme) {
     final theme = Theme.of(context);
     final isSelected = (service.currentState.speed - speed).abs() < 0.01;
 

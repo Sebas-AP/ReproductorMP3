@@ -6,7 +6,7 @@ import 'package:reproductor_musica/data/repositories/playlist_repository_impl.da
 import 'package:reproductor_musica/data/repositories/equalizer_repository_impl.dart';
 import 'package:reproductor_musica/data/repositories/settings_repository_impl.dart';
 import 'package:reproductor_musica/domain/repositories/media_repository.dart';
-import 'database_providers.dart';
+import 'package:reproductor_musica/data/repositories/database_providers.dart';
 
 final songRepositoryProvider = Provider<SongRepository>((ref) {
   return SongRepositoryImpl(ref.watch(songDaoProvider));

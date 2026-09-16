@@ -219,7 +219,7 @@ class _EqualizerPageState extends ConsumerState<EqualizerPage> with TickerProvid
           Text('Efectos', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
           const SizedBox(height: 20),
           _buildEffectSlider('Bass Boost', Icons.graphic_eq, bassBoost, 0, 12,
-              enabled ? (v) => equalizerService.setBassBoost(v) : null, colorScheme),
+              enabled ? (v) => service.setBassBoost(v) : null, colorScheme),
           const SizedBox(height: 16),
           _buildEffectSlider('Virtualizador', Icons.surround_sound, virtualizer, 0, 10,
               enabled ? (v) => service.setVirtualizer(v) : null, colorScheme),
@@ -337,6 +337,7 @@ Row(
 
   void _showSavePresetDialog() {
     final controller = TextEditingController();
+    final equalizerService = ref.read(equalizerServiceProvider);
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -351,7 +352,7 @@ Row(
           FilledButton(
             onPressed: () {
               if (controller.text.trim().isNotEmpty) {
-                service.saveAsPreset(controller.text.trim());
+                equalizerService.saveAsPreset(controller.text.trim());
                 Navigator.pop(context);
               }
             },
