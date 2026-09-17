@@ -1,19 +1,19 @@
 package com.reproductor.reproductor_musica
 
-import android.media.audiofx.AudioEffect
 import android.media.audiofx.BassBoost
 import android.media.audiofx.Equalizer
 import android.media.audiofx.Virtualizer
-import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.EventChannel
+import io.flutter.plugin.common.EventChannel.EventSink
+import io.flutter.plugin.common.EventChannel.StreamHandler
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
-import io.flutter.plugin.common.EventChannel.EventSink
-import io.flutter.plugin.common.EventChannel.StreamHandler
 import java.util.concurrent.Executors
 
 class EqualizerPlugin : FlutterPlugin, MethodCallHandler, StreamHandler {
@@ -25,8 +25,10 @@ class EqualizerPlugin : FlutterPlugin, MethodCallHandler, StreamHandler {
     private var bassBoost: BassBoost? = null
     private var virtualizer: Virtualizer? = null
     private var audioSessionId: Int = 0
+    private var preampValue: Double = 0.0
 
     private val executor = Executors.newSingleThreadExecutor()
+    private val mainHandler = Handler(Looper.getMainLooper())
 
     override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         methodChannel = MethodChannel(binding.binaryMessenger, "com.reproductor.equalizer")
@@ -51,43 +53,43 @@ class EqualizerPlugin : FlutterPlugin, MethodCallHandler, StreamHandler {
                     "init" -> {
                         val sessionId = call.argument<Int>("audioSessionId") ?: 0
                         initEqualizer(sessionId)
-                        result.success(null)
+                        mainHandler.post { result.success(null) }
                     }
                     "setGain" -> {
                         val band = call.argument<Int>("band") ?: 0
                         val gain = call.argument<Double>("gain") ?: 0.0
                         setBandGain(band, gain)
-                        result.success(null)
+                        mainHandler.post { result.success(null) }
                     }
                     "setPreamp" -> {
                         val gain = call.argument<Double>("gain") ?: 0.0
                         setPreamp(gain)
-                        result.success(null)
+                        mainHandler.post { result.success(null) }
                     }
                     "setBassBoost" -> {
                         val gain = call.argument<Double>("gain") ?: 0.0
                         setBassBoost(gain)
-                        result.success(null)
+                        mainHandler.post { result.success(null) }
                     }
                     "setVirtualizer" -> {
                         val gain = call.argument<Double>("gain") ?: 0.0
                         setVirtualizer(gain)
-                        result.success(null)
+                        mainHandler.post { result.success(null) }
                     }
                     "setEnabled" -> {
                         val enabled = call.argument<Boolean>("enabled") ?: false
                         setEnabled(enabled)
-                        result.success(null)
+                        mainHandler.post { result.success(null) }
                     }
                     "release" -> {
                         release()
-                        result.success(null)
+                        mainHandler.post { result.success(null) }
                     }
-                    else -> result.notImplemented()
+                    else -> mainHandler.post { result.notImplemented() }
                 }
             } catch (e: Exception) {
                 Log.e("EqualizerPlugin", "Error: ${e.message}")
-                result.error("ERROR", e.message, null)
+                mainHandler.post { result.error("ERROR", e.message, null) }
             }
         }
     }
@@ -105,13 +107,13 @@ class EqualizerPlugin : FlutterPlugin, MethodCallHandler, StreamHandler {
         audioSessionId = sessionId
         try {
             equalizer = Equalizer(0, audioSessionId)
-            equalizer?.setEnabled(true)
+            equalizer?.enabled = true
 
             bassBoost = BassBoost(0, audioSessionId)
-            bassBoost?.setEnabled(true)
+            bassBoost?.enabled = true
 
             virtualizer = Virtualizer(0, audioSessionId)
-            virtualizer?.setEnabled(true)
+            virtualizer?.enabled = true
 
             sendStateUpdate()
         } catch (e: Exception) {
@@ -121,24 +123,21 @@ class EqualizerPlugin : FlutterPlugin, MethodCallHandler, StreamHandler {
 
     private fun setBandGain(band: Int, gain: Double) {
         equalizer?.let {
-            val minGain = it.bandLevelRange[0]
-            val maxGain = it.bandLevelRange[1]
-            val clampedGain = gain.coerceIn(minGain.toDouble() / 100, maxGain.toDouble() / 100)
-            val hundredthsOfDb = (clampedGain * 100).toInt()
-            it.setBandLevel((band + 1).toShort(), hundredthsOfDb.toShort())
-            sendStateUpdate()
+            val count = it.numberOfBands.toInt()
+            if (band in 0 until count) {
+                val minGain = it.bandLevelRange[0]
+                val maxGain = it.bandLevelRange[1]
+                val clampedGain = gain.coerceIn(minGain.toDouble() / 100.0, maxGain.toDouble() / 100.0)
+                val hundredthsOfDb = (clampedGain * 100).toInt()
+                it.setBandLevel(band.toShort(), hundredthsOfDb.toShort())
+                sendStateUpdate()
+            }
         }
     }
 
     private fun setPreamp(gain: Double) {
-        equalizer?.let {
-            val minGain = it.bandLevelRange[0]
-            val maxGain = it.bandLevelRange[1]
-            val clampedGain = gain.coerceIn(minGain.toDouble() / 100, maxGain.toDouble() / 100)
-            val hundredthsOfDb = (clampedGain * 100).toInt()
-            it.setBandLevel((0).toShort(), hundredthsOfDb.toShort())
-            sendStateUpdate()
-        }
+        preampValue = gain
+        sendStateUpdate()
     }
 
     private fun setBassBoost(gain: Double) {
@@ -158,9 +157,9 @@ class EqualizerPlugin : FlutterPlugin, MethodCallHandler, StreamHandler {
     }
 
     private fun setEnabled(enabled: Boolean) {
-        equalizer?.setEnabled(enabled)
-        bassBoost?.setEnabled(enabled)
-        virtualizer?.setEnabled(enabled)
+        equalizer?.enabled = enabled
+        bassBoost?.enabled = enabled
+        virtualizer?.enabled = enabled
         sendStateUpdate()
     }
 
@@ -175,27 +174,28 @@ class EqualizerPlugin : FlutterPlugin, MethodCallHandler, StreamHandler {
     }
 
     private fun sendStateUpdate() {
-        eventSink?.let { sink ->
-            executor.execute {
-                val gains = mutableListOf<Double>()
-                equalizer?.let {
-                    val bandCount = it.numberOfBands
-                    for (i in 0 until bandCount) {
-                        gains.add(it.getBandLevel((i + 1).toShort()).toDouble() / 100.0)
-                    }
+        val sink = eventSink ?: return
+        executor.execute {
+            val gains = mutableListOf<Double>()
+            equalizer?.let { eq ->
+                val bandCount = eq.numberOfBands.toInt()
+                for (i in 0 until bandCount) {
+                    gains.add(eq.getBandLevel(i.toShort()).toDouble() / 100.0)
                 }
-                val preamp = equalizer?.getBandLevel(0).toDouble() / 100.0 ?: 0.0
-                val bass = bassBoost?.let { it.roundedStrength.toDouble() / 1000.0 * 10.0 } ?: 0.0
-                val virtual = virtualizer?.let { it.roundedStrength.toDouble() / 1000.0 * 10.0 } ?: 0.0
-                val enabled = equalizer?.getEnabled() ?: false
+            }
+            val preamp = preampValue
+            val bass = bassBoost?.let { it.roundedStrength.toDouble() / 1000.0 * 10.0 } ?: 0.0
+            val virtual = virtualizer?.let { it.roundedStrength.toDouble() / 1000.0 * 10.0 } ?: 0.0
+            val enabled = equalizer?.enabled ?: false
 
-                val map = mapOf(
-                    "gains" to gains,
-                    "preamp" to preamp,
-                    "bassBoost" to bass,
-                    "virtualizer" to virtual,
-                    "enabled" to enabled
-                )
+            val map = mapOf(
+                "gains" to gains,
+                "preamp" to preamp,
+                "bassBoost" to bass,
+                "virtualizer" to virtual,
+                "enabled" to enabled
+            )
+            mainHandler.post {
                 sink.success(map)
             }
         }

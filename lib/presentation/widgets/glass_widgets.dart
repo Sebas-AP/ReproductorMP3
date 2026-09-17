@@ -15,6 +15,8 @@ class GlassCard extends StatelessWidget {
   final List<BoxShadow>? boxShadow;
   final Gradient? gradient;
   final BorderRadius? borderRadius;
+  final bool enableBlur;
+  final bool enableAnimation;
 
   const GlassCard({
     super.key,
@@ -29,6 +31,8 @@ class GlassCard extends StatelessWidget {
     this.boxShadow,
     this.gradient,
     this.borderRadius,
+    this.enableBlur = false,
+    this.enableAnimation = false,
   });
 
   @override
@@ -40,11 +44,19 @@ class GlassCard extends StatelessWidget {
     final effectiveRadius = (borderRadius?.topLeft.x ?? glassTheme?.borderRadius ?? AppTheme.defaultBorderRadius);
     final effectiveBlur = glassTheme?.blurIntensity ?? AppTheme.defaultBlurIntensity;
     final effectiveOpacity = glassTheme?.surfaceOpacity ?? AppTheme.defaultSurfaceOpacity;
-    final effectiveBorderColor = borderColor ?? glassTheme?.borderColor ?? colorScheme.outline.withOpacity(0.15);
+    final effectiveBorderColor = borderColor ?? glassTheme?.borderColor ?? colorScheme.outline.withValues(alpha: 0.15);
     final effectiveShadowColor = boxShadow?.first.color ?? glassTheme?.shadowColor ??
-        (theme.brightness == Brightness.dark ? Colors.black.withOpacity(0.3) : Colors.black.withOpacity(0.1));
-    final effectiveShadowBlur = boxShadow?.first.blurRadius ?? glassTheme?.shadowBlurRadius ?? 20;
-    final effectiveShadowOffset = boxShadow?.first.offset ?? glassTheme?.shadowOffset ?? const Offset(0, 10);
+        (theme.brightness == Brightness.dark ? Colors.black.withValues(alpha: 0.3) : Colors.black.withValues(alpha: 0.08));
+    final effectiveShadowBlur = boxShadow?.first.blurRadius ?? glassTheme?.shadowBlurRadius ?? 16;
+    final effectiveShadowOffset = boxShadow?.first.offset ?? glassTheme?.shadowOffset ?? const Offset(0, 6);
+
+    final content = Container(
+      decoration: BoxDecoration(
+        color: surfaceColor ?? colorScheme.surface.withValues(alpha: effectiveOpacity),
+        gradient: gradient,
+      ),
+      child: child,
+    );
 
     Widget container = Container(
       width: width,
@@ -65,16 +77,12 @@ class GlassCard extends StatelessWidget {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(effectiveRadius),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: effectiveBlur, sigmaY: effectiveBlur),
-          child: Container(
-            decoration: BoxDecoration(
-              color: surfaceColor ?? colorScheme.surface.withOpacity(effectiveOpacity),
-              gradient: gradient,
-            ),
-            child: child,
-          ),
-        ),
+        child: enableBlur
+            ? BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: effectiveBlur, sigmaY: effectiveBlur),
+                child: content,
+              )
+            : content,
       ),
     );
 
@@ -89,9 +97,11 @@ class GlassCard extends StatelessWidget {
       );
     }
 
-    return container.animate()
-        .fadeIn(duration: 300.ms, curve: Curves.easeOut)
-        .scale(duration: 300.ms, curve: Curves.easeOut);
+    if (enableAnimation) {
+      return container.animate().fadeIn(duration: 200.ms, curve: Curves.easeOut);
+    }
+
+    return container;
   }
 }
 

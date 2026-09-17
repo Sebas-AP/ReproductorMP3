@@ -9,17 +9,29 @@ import 'package:reproductor_musica/services/equalizer_service.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await JustAudioBackground.init(
-    androidNotificationChannelId: 'com.reproductor.musica.audio',
-    androidNotificationChannelName: 'Reproducción de música',
-    androidNotificationOngoing: true,
-  );
+  try {
+    await JustAudioBackground.init(
+      androidNotificationChannelId: 'com.reproductor.musica.audio',
+      androidNotificationChannelName: 'Reproducción de música',
+      androidNotificationOngoing: true,
+    );
+  } catch (e) {
+    debugPrint('Error inicializando JustAudioBackground: $e');
+  }
 
-  final audioService = audio_service.AudioPlayerService();
-  await audioService.initialize();
+  try {
+    final audioService = audio_service.AudioPlayerService();
+    await audioService.initialize();
+  } catch (e) {
+    debugPrint('Error inicializando AudioPlayerService: $e');
+  }
 
-  final equalizerService = EqualizerService();
-  await equalizerService.initialize();
+  try {
+    final equalizerService = EqualizerService();
+    await equalizerService.initialize();
+  } catch (e) {
+    debugPrint('Error inicializando EqualizerService: $e');
+  }
 
   runApp(const ProviderScope(child: ReproductorApp()));
 }

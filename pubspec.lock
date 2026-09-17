@@ -393,6 +393,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "7.0.1"
+  file_picker:
+    dependency: "direct main"
+    description:
+      name: file_picker
+      sha256: "29cc1fdb20613876cc7afc529738c1c0f11a9ca159b010edad0c566ac330847e"
+      url: "https://pub.dev"
+    source: hosted
+    version: "11.0.3"
   fixnum:
     dependency: transitive
     description:
@@ -454,6 +462,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "7.2.0"
+  flutter_plugin_android_lifecycle:
+    dependency: transitive
+    description:
+      name: flutter_plugin_android_lifecycle
+      sha256: "3854fe5e3bff0b113c658f260b90c95dea17c92db0f2addeac2e343dd9969785"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.0.35"
   flutter_riverpod:
     dependency: "direct main"
     description:
@@ -532,10 +548,10 @@ packages:
     dependency: "direct main"
     description:
       name: home_widget
-      sha256: "9514c47422d511e87a3923ffed3fc4eb82540e168d7715d1560ceb1f02d5ec80"
+      sha256: b8d377e6a5aacc65193170addf252cce7868fa621b740cdd7b517a233871c185
       url: "https://pub.dev"
     source: hosted
-    version: "0.1.6"
+    version: "0.9.4"
   hooks:
     dependency: transitive
     description:

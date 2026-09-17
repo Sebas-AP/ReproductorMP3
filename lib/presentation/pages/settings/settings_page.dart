@@ -1,5 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:path/path.dart' as p;
 import 'package:reproductor_musica/presentation/widgets/glass_widgets.dart';
 import 'package:reproductor_musica/presentation/providers/theme_provider.dart';
 import 'package:reproductor_musica/presentation/providers/service_providers.dart';
@@ -465,8 +468,246 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     );
   }
 
-  void _showFolderPicker() {
-    // TODO: Implement folder picker using file_picker or platform channels
+  Future<void> _showFolderPicker() async {
+    final scanner = ref.read(mediaScannerProvider);
+    final hasPermission = await scanner.requestPermissions();
+    if (!mounted) return;
+
+    if (!hasPermission) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Se requieren permisos de acceso a archivos/audio para seleccionar carpetas.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+    }
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _buildFolderPickerSheet(),
+    );
+  }
+
+  Widget _buildFolderPickerSheet() {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    final standardPaths = [
+      '/storage/emulated/0/Music',
+      '/storage/emulated/0/Download',
+      '/storage/emulated/0/Audiobooks',
+      '/storage/emulated/0/Podcasts',
+    ];
+    final availableStandards = standardPaths.where((path) {
+      try {
+        return Directory(path).existsSync();
+      } catch (_) {
+        return false;
+      }
+    }).toList();
+
+    return StatefulBuilder(
+      builder: (sheetContext, setSheetState) {
+        return GlassModalSheet(
+          maxHeight: MediaQuery.of(context).size.height * 0.85,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.folder_special, color: colorScheme.primary, size: 28),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Carpetas de Música',
+                      style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(sheetContext),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: () async {
+                  final selectedPath = await FilePicker.getDirectoryPath(
+                    dialogTitle: 'Selecciona la carpeta con tu música',
+                  );
+                  if (selectedPath != null) {
+                    await _addAndScanFolder(selectedPath);
+                    setSheetState(() {});
+                  }
+                },
+                icon: const Icon(Icons.folder_open),
+                label: const Text('Explorar y seleccionar carpeta...'),
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(50),
+                  backgroundColor: colorScheme.primary,
+                  foregroundColor: colorScheme.onPrimary,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+              const SizedBox(height: 16),
+              if (availableStandards.isNotEmpty) ...[
+                Text(
+                  'Carpetas comunes detectadas',
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: colorScheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: availableStandards.map((path) {
+                    final isAlreadyAdded = _folders.any((f) => f.path == path);
+                    final dirName = p.basename(path);
+                    return ActionChip(
+                      avatar: Icon(
+                        isAlreadyAdded ? Icons.check_circle : Icons.add_circle_outline,
+                        size: 18,
+                        color: isAlreadyAdded ? Colors.green : colorScheme.primary,
+                      ),
+                      label: Text(dirName),
+                      onPressed: isAlreadyAdded
+                          ? null
+                          : () async {
+                              await _addAndScanFolder(path);
+                              setSheetState(() {});
+                            },
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 16),
+              ],
+              Text(
+                'Carpetas activas (${_folders.length})',
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: colorScheme.primary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 8),
+              if (_folders.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  child: Center(
+                    child: Text(
+                      'No has añadido ninguna carpeta todavía.\nToca el botón de arriba para seleccionar tu música.',
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                )
+              else
+                Flexible(
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: _folders.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    itemBuilder: (ctx, i) {
+                      final folder = _folders[i];
+                      return ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: CircleAvatar(
+                          backgroundColor: colorScheme.primaryContainer,
+                          child: Icon(Icons.folder, color: colorScheme.onPrimaryContainer),
+                        ),
+                        title: Text(folder.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                        subtitle: Text(
+                          folder.path,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant),
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.refresh, size: 20),
+                              tooltip: 'Re-escanear',
+                              onPressed: () async {
+                                final scanner = ref.read(mediaScannerProvider);
+                                final count = await scanner.scanAndSaveSingleFolder(folder);
+                                await _loadFolders();
+                                setSheetState(() {});
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Se encontraron $count canciones en "${folder.name}".')),
+                                  );
+                                }
+                              },
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                              tooltip: 'Eliminar carpeta',
+                              onPressed: () async {
+                                if (folder.id != null) {
+                                  await ref.read(folderRepositoryProvider).deleteFolder(folder.id!);
+                                  await _loadFolders();
+                                  setSheetState(() {});
+                                }
+                              },
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _addAndScanFolder(String path) async {
+    final folderRepo = ref.read(folderRepositoryProvider);
+    final existing = await folderRepo.getFolderByPath(path);
+    int folderId;
+    if (existing != null && existing.id != null) {
+      folderId = existing.id!;
+    } else {
+      final name = p.basename(path).isEmpty ? path : p.basename(path);
+      folderId = await folderRepo.insertFolder(Folder(
+        name: name,
+        path: path,
+        isEnabled: true,
+      ));
+    }
+
+    await _loadFolders();
+    final folder = await folderRepo.getFolderById(folderId);
+    if (folder != null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Escaneando canciones en "${folder.name}"...'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+      final scanner = ref.read(mediaScannerProvider);
+      final count = await scanner.scanAndSaveSingleFolder(folder);
+      await _loadFolders();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Escaneo completado: se encontraron $count canciones.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _scanLibrary() async {

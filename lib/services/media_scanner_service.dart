@@ -29,6 +29,7 @@ class MediaScannerService implements MediaScannerRepository {
 
   @override
   Future<List<Song>> scanFolder(String folderPath) async {
+    await requestPermissions();
     final folder = Directory(folderPath);
     if (!await folder.exists()) return [];
 
@@ -41,7 +42,7 @@ class MediaScannerService implements MediaScannerRepository {
     try {
       final entities = await dir.list().toList();
       for (final entity in entities) {
-        if (!_isScanning) return;
+        if (!_isScanning && songs.isNotEmpty && songs.length > 5000) return;
 
         if (entity is File) {
           final song = await _extractMetadata(entity);
@@ -49,11 +50,15 @@ class MediaScannerService implements MediaScannerRepository {
             songs.add(song);
           }
         } else if (entity is Directory) {
-          await _scanDirectory(entity, songs);
+          final dirName = p.basename(entity.path);
+          // Omitir carpetas ocultas o de sistema
+          if (!dirName.startsWith('.')) {
+            await _scanDirectory(entity, songs);
+          }
         }
       }
     } catch (e) {
-      // Ignore permission errors
+      // Ignorar errores de acceso en directorios protegidos
     }
   }
 
@@ -62,17 +67,26 @@ class MediaScannerService implements MediaScannerRepository {
     if (!AppConstants.supportedAudioExtensions.contains(extension)) return null;
 
     try {
-      // TODO: Use media_metadata_retriever or platform channel for actual metadata
-      // For now, create basic song from filename
       final name = p.basenameWithoutExtension(file.path);
+      String artist = 'Artista desconocido';
+      String title = name;
+
+      if (name.contains(' - ')) {
+        final parts = name.split(' - ');
+        if (parts.length >= 2) {
+          artist = parts[0].trim();
+          title = parts.sublist(1).join(' - ').trim();
+        }
+      }
+
       final stat = await file.stat();
 
       return Song(
         path: file.path,
-        title: name,
-        artist: 'Artista desconocido',
+        title: title,
+        artist: artist,
         album: 'Álbum desconocido',
-        duration: 0, // Will be filled by audio player
+        duration: 0, // Will be filled on playback
         dateAdded: stat.modified,
       );
     } catch (e) {
@@ -80,10 +94,39 @@ class MediaScannerService implements MediaScannerRepository {
     }
   }
 
+  /// Escanea una carpeta específica e inserta sus canciones en la base de datos
+  Future<int> scanAndSaveSingleFolder(Folder folder) async {
+    await requestPermissions();
+    _isScanning = true;
+    _progressController.add(0.0);
+
+    try {
+      final songs = await scanFolder(folder.path);
+      int addedCount = 0;
+
+      for (final song in songs) {
+        final existing = await songRepository.getSongByPath(song.path);
+        if (existing == null) {
+          await songRepository.insertSong(song.copyWith(folderId: folder.id));
+          addedCount++;
+        } else {
+          await songRepository.updateSong(existing.copyWith(folderId: folder.id));
+        }
+      }
+
+      await folderRepository.updateFolder(folder.copyWith(lastScanned: DateTime.now()));
+      _progressController.add(1.0);
+      return addedCount;
+    } finally {
+      _isScanning = false;
+    }
+  }
+
   @override
   Future<void> scanAllFolders() async {
     if (_isScanning) return;
 
+    await requestPermissions();
     _isScanning = true;
     _progressController.add(0.0);
 
@@ -91,6 +134,11 @@ class MediaScannerService implements MediaScannerRepository {
       final folders = await folderRepository.getAllFolders(enabledOnly: true);
       int totalScanned = 0;
       int totalFolders = folders.length;
+
+      if (totalFolders == 0) {
+        _progressController.add(1.0);
+        return;
+      }
 
       for (final folder in folders) {
         if (!_isScanning) break;
@@ -122,15 +170,24 @@ class MediaScannerService implements MediaScannerRepository {
     _isScanning = false;
   }
 
-  Future<void> requestPermissions() async {
-    if (await Permission.storage.isGranted) return;
-    if (await Permission.audio.isGranted) return;
+  Future<bool> requestPermissions() async {
+    final audioGranted = await Permission.audio.isGranted;
+    final storageGranted = await Permission.storage.isGranted;
+    final manageGranted = await Permission.manageExternalStorage.isGranted;
 
-    await [
-      Permission.storage,
+    if (audioGranted || storageGranted || manageGranted) {
+      return true;
+    }
+
+    final statuses = await [
       Permission.audio,
+      Permission.storage,
       Permission.manageExternalStorage,
     ].request();
+
+    return statuses[Permission.audio]?.isGranted == true ||
+           statuses[Permission.storage]?.isGranted == true ||
+           statuses[Permission.manageExternalStorage]?.isGranted == true;
   }
 
   void dispose() {

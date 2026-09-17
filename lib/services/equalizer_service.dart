@@ -7,7 +7,7 @@ class EqualizerService {
   static const double minGain = -12.0;
   static const double maxGain = 12.0;
 
-  final List<double> _gains = List.filled(10, 0.0);
+  final List<double> _gains = List.filled(10, 0.0, growable: true);
   double _preamp = 0.0;
   double _bassBoost = 0.0;
   double _virtualizer = 0.0;
@@ -55,9 +55,11 @@ class EqualizerService {
   }
 
   void _onNativeStateChanged(EqualizerNativeState state) {
-    _gains
-      ..clear()
-      ..addAll(state.gains);
+    for (int i = 0; i < 10; i++) {
+      if (i < state.gains.length) {
+        _gains[i] = state.gains[i];
+      }
+    }
     _preamp = state.preamp;
     _bassBoost = state.bassBoost;
     _virtualizer = state.virtualizer;
